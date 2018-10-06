@@ -43,20 +43,29 @@ class SmappCollection(object):
 
     def get_tweet_texts(self):
         for tweet in self.collection.get_iterator():
-            yield tweet['text']
+            try:
+                yield tweet['text']
+            except:
+                yield tweet['full_text']
 
     def count_tweets(self):
         return sum(1 for tweet in self.collection.get_iterator())
 
     def count_tweet_terms(self, *args):
         def tweet_contains_terms(tweet):
-            return any([term in tweet['text'] for term in args])
+            try:
+                return any([term in tweet['text'] for term in args])
+            except:
+                return any([term in tweet['full_text'] for term in args])
         cp = copy.deepcopy(self)
         return sum(1 for tweet in cp.collection.set_custom_filter(tweet_contains_terms).get_iterator())
 
     def get_tweets_containing(self, *args):
         def tweet_contains_terms(tweet):
-            return any([term in tweet['text'] for term in args])
+            try:
+                return any([term in tweet['text'] for term in args])
+            except:
+                return any([term in tweet['full_text'] for term in args])
         cp = copy.deepcopy(self)
         cp.collection.set_custom_filter(tweet_contains_terms)
         return cp
@@ -93,7 +102,9 @@ class SmappCollection(object):
         def language_in_tweet(tweet):
             detected_lang = None
             try: 
-                detected_lang = detect(tweet['text'])             
+                detected_lang = detect(tweet['text'])
+            except:
+                detected_lang = detect(tweet['full_text']) 
             except lang_detect_exception.LangDetectException:
                 pass
             return  any([detected_lang in args])
@@ -192,7 +203,10 @@ class SmappCollection(object):
                     if entity_type == 'user_mentions':
                         entity_value = tweet_parser.get_entity_field('id_str', entity)
                     elif entity_type == 'hashtags' or entity_type == 'symbols':
-                        entity_value = tweet_parser.get_entity_field('text', entity)
+                        try:
+                            entity_value = tweet_parser.get_entity_field('text', entity)
+                        except:
+                            entity_value = tweet_parser.get_entity_field('full_text', entity)
                     else:
                         entity_value = tweet_parser.get_entity_field('url', entity)
 
@@ -306,7 +320,10 @@ class SmappCollection(object):
         if not stop_words:
             stop_words = get_stop_words('en')
         for tweet in self.collection.get_iterator():
-            split_tweet = tweet['text'].split()
+            try:
+                split_tweet = tweet['text'].split()
+            except:
+                split_tweet = tweet['full_text'].split()
             for tweet_token in split_tweet:
                 if tweet_token not in stop_words:
                     term_counts[tweet_token] = 0 if tweet_token not in term_counts else term_counts[tweet_token]+1
